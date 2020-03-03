@@ -3,8 +3,8 @@
 * Library: TMRh20/RF24, https://github.com/tmrh20/RF24/
 */
 
-#define ENABLE 5
-#define DIRA 3
+#define ENABLE 6
+#define DIRA 4
 int forceHalfPeriod = 100;
 
 long data[5];
@@ -47,32 +47,27 @@ void setup() {
   digitalWrite(ENABLE,HIGH); // enable on
 }
 
-bool forceUpFlag = false;
-
-bool runStep(long frequency) {
-  unsigned long current_time = millis();
-  if(forceUpFlag && (current_time-time_now) == forceHalfPeriod) {
-    digitalWrite(DIRA, 0);
-    time_now = millis();
-  } else if(!forceUpFlag && (current_time-time_now) == forceHalfPeriod) {
-    digitalWrite(DIRA, 1);
-    time_now = millis();
-  }
-  
+int forceUpFlag = 0;
+/*
+ * When this function is called, we have just taken a "step", and changed the frequency by currentStep
+ * We will 
+ */
+bool runStep(long frequency) { // 
+  unsigned long last_motor_drive = millis(); // Start Time
   // Initialize minUltra to first data point
   if(radio.available(0)) {
     radio.read(&data, sizeof(data));
     minUltra = data[4];
   }
 
-  long firstTime = data[0];
-  Serial.print("Data, endTime:");
-  Serial.print(data[0]);
-  Serial.println();
-  Serial.print(data[0]-firstTime);
-  Serial.println();
-  
-  while((data[0]-firstTime) < stepTime) { // Run step for certain amount of time
+  while((data[0]-firstTime) < stepTime) { // Run step for certain amount of time, collecting data
+    time_now = millis();
+    if(forceUpFlag && (time_now - last_motor_drive) >= forceHalfPeriod) { // If we have surpassed forceHalfPeriod, switch driving motor state
+      forceUpFlag = forceUpFlag ^ 1; // Switch the flag from 0 to 1 or vice versa using xor
+      digitalWrite(DIRA, forceUpFlag);
+      last_motor_drive = time_now; // Start counting time to next drive from now
+    } 
+
     if(radio.available(0)) {
       radio.read(&data, sizeof(data));
       for(int i = 0; i < (sizeof(data) / sizeof(data[0])-1); i++)
@@ -82,10 +77,13 @@ bool runStep(long frequency) {
       }
       Serial.print(data[4]);
       Serial.println();
-      maxUltra = data[4] > maxUltra ? data[4]:maxUltra;
-      minUltra = data[4] < minUltra ? data[4]:minUltra;
+      /*maxUltra = data[4] > maxUltra ? data[4]:maxUltra;
+      minUltra = data[4] < minUltra ? data[4]:minUltra;*/
     }
   }
+  
+
+  
   Serial.print("TIME");
   Serial.println(); Serial.print(data[0]-firstTime); Serial.println();
 
