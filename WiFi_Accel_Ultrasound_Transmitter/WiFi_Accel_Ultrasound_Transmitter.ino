@@ -77,15 +77,15 @@ long collect_data() {
     AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
     AcZ=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
     elapsedTime = millis();
-    long dataArray[5] = {elapsedTime, AcX, AcY,AcZ,duration};
+  long dataArray[8] = {elapsedTime, AcX, AcY,AcZ,duration,step_size,forceHalfPeriod,overstep_counter};
 
-    for(int i = 0; i < (sizeof(dataArray) / sizeof(dataArray[0])-1); i++)
-    {
-      Serial.print(dataArray[i]);
-      Serial.print(",");  
-     }
-     Serial.print(dataArray[4]);
-     Serial.println();
+  for(int i = 0; i < (sizeof(dataArray) / sizeof(dataArray[0])-1); i++)
+  {
+    Serial.print(dataArray[i]);
+    Serial.print(",");  
+   }
+   Serial.print(dataArray[7]);
+   Serial.println();
 
     digitalWrite(trigPin, LOW);
     delayMicroseconds(5);
@@ -124,16 +124,14 @@ void run_infinite() {
   AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
   AcZ=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
   elapsedTime = millis();
-  long dataArray[5] = {elapsedTime, AcX, AcY,AcZ,duration};
+  long dataArray[8] = {elapsedTime, AcX, AcY,AcZ,duration,step_size,forceHalfPeriod,overstep_counter};
 
   for(int i = 0; i < (sizeof(dataArray) / sizeof(dataArray[0])-1); i++)
   {
     Serial.print(dataArray[i]);
     Serial.print(",");  
    }
-   Serial.print(dataArray[4]);
-   Serial.print(",");
-   Serial.print(step_size);
+   Serial.print(dataArray[7]);
    Serial.println();
 
    // Data is printed and in the dataArray
@@ -173,7 +171,7 @@ void run_infinite() {
  */
 void loop() {  
   if (step_size < 5){
-    forceHalfPeriod = forceHalfPeriod  + 2 * (step_direction * step_size);
+    forceHalfPeriod = max_frequency;
     while(1){
       run_infinite();
     }
@@ -200,40 +198,40 @@ void loop() {
 //  
 //  
 //  
-  pinMode(echoPin, INPUT);
-  duration = pulseIn(echoPin, HIGH)*sound_speed/2000000;
-  
-  Wire.beginTransmission(MPU_addr);
-  Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
-  Wire.endTransmission(false);
-  Wire.requestFrom(MPU_addr,8,true);  // request a total of 14 registers
-  AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
-  AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-  AcZ=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
-  elapsedTime = millis();
-  long dataArray[5] = {elapsedTime, AcX, AcY,AcZ,duration};
-
-  for(int i = 0; i < (sizeof(dataArray) / sizeof(dataArray[0])-1); i++)
-  {
-    Serial.print(dataArray[i]);
-    Serial.print(",");  
-   }
-   Serial.print(dataArray[4]);
-   Serial.println();
-
-     digitalWrite(trigPin, LOW);
-  delayMicroseconds(5);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-   // Data is printed and in the dataArray
-  time_now = millis();
-  if((time_now - last_motor_drive) >= forceHalfPeriod) { // If we have surpassed forceHalfPeriod, switch driving motor state
-    forceUpFlag = forceUpFlag ^ 1; // Switch the flag from 0 to 1 or vice versa using xor
-    digitalWrite(DIRA, forceUpFlag);
-    last_motor_drive = time_now; // Start counting time to next drive from now
-  }
+//  pinMode(echoPin, INPUT);
+//  duration = pulseIn(echoPin, HIGH)*sound_speed/2000000;
+//  
+//  Wire.beginTransmission(MPU_addr);
+//  Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
+//  Wire.endTransmission(false);
+//  Wire.requestFrom(MPU_addr,8,true);  // request a total of 14 registers
+//  AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
+//  AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+//  AcZ=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+//  elapsedTime = millis();
+//  long dataArray[5] = {elapsedTime, AcX, AcY,AcZ,duration};
+//
+//  for(int i = 0; i < (sizeof(dataArray) / sizeof(dataArray[0])-1); i++)
+//  {
+//    Serial.print(dataArray[i]);
+//    Serial.print(",");  
+//   }
+//   Serial.print(dataArray[4]);
+//   Serial.println();
+//
+//     digitalWrite(trigPin, LOW);
+//  delayMicroseconds(5);
+//  digitalWrite(trigPin, HIGH);
+//  delayMicroseconds(10);
+//  digitalWrite(trigPin, LOW);
+//
+//   // Data is printed and in the dataArray
+//  time_now = millis();
+//  if((time_now - last_motor_drive) >= forceHalfPeriod) { // If we have surpassed forceHalfPeriod, switch driving motor state
+//    forceUpFlag = forceUpFlag ^ 1; // Switch the flag from 0 to 1 or vice versa using xor
+//    digitalWrite(DIRA, forceUpFlag);
+//    last_motor_drive = time_now; // Start counting time to next drive from now
+//  }
 ////    digitalWrite(DIRA, 1); //one way
 ////    delay(forceHalfPeriod); // Wait one half period before forcing up
 ////    digitalWrite(DIRA, 0);  //reverse
