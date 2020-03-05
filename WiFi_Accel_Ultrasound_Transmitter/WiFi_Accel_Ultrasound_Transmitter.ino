@@ -7,7 +7,7 @@
 
 #define ENABLE 6
 #define DIRA 4
-int forceHalfPeriod = 570;
+int forceHalfPeriod = 300;
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
 long elapsedTime, AcX, AcY, AcZ; 
 int yPosPin, yNegPin, xPosPin, xNegPin, intensityX, intensityY;
@@ -30,6 +30,8 @@ long curr_max;
 int overstep_counter = 0;
 int step_direction = 1;
 int step_size = 40;
+
+int max_frequency = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -59,7 +61,7 @@ void stabilize(){
   }
 }
 
-long collect_data(){
+long collect_data() {
   start_time = millis();
   long maxUltra = 0;
   long minUltra = -1;
@@ -109,7 +111,7 @@ long collect_data(){
   return (maxUltra-minUltra)/2;
 }
 
-void run_infinite(){
+void run_infinite() {
 
   pinMode(echoPin, INPUT);
   duration = pulseIn(echoPin, HIGH)*sound_speed/2000000;
@@ -177,22 +179,19 @@ void loop() {
     }
   }
   else{
+    overstep_counter++;
     stabilize();
     curr_max = collect_data();
     if ( curr_max > max_amplitude){
       max_amplitude = curr_max;
-      overstep_counter = 0;
-      forceHalfPeriod = forceHalfPeriod + (step_direction * step_size);
+      max_frequency = forceHalfPeriod;
     }
-    else if (curr_max < max_amplitude){
-      overstep_counter++;
-      if (overstep_counter == 2){
-        overstep_counter = 0;
-        max_amplitude = 0;
-        step_direction = step_direction * (-1);
-        step_size = step_size / 2;
-        forceHalfPeriod = forceHalfPeriod + (step_direction * step_size);
-      }
+    forceHalfPeriod = forceHalfPeriod + step_size;
+    if (overstep_counter >= 8) {
+      overstep_counter = 1;
+      max_amplitude = 0;
+      step_size = step_size / 2;
+      forceHalfPeriod = max_frequency - (4*step_size);
     }
   }
     
